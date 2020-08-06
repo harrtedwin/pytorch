@@ -2463,6 +2463,21 @@ class AbstractTestCases:
                 with self.assertRaisesRegex(RuntimeError, 'start_dim cannot come after end_dim'):
                     src.flatten(2, 0)
 
+        def test_unflatten(self):
+            self.assertEqual(torch.tensor([]).unflatten(0, (0, 1, 0)), torch.empty(0, 1, 0))
+            self.assertEqual(torch.tensor([1]).unflatten(0, (1, 1)), torch.tensor([[1]]))
+            self.assertEqual(torch.tensor([[1, 2, 3, 4]]).unflatten(1, (2, 2)), torch.tensor([[[1, 2], [3, 4]]]))
+            self.assertEqual(torch.tensor([[1, 2, 3, 4]]).unflatten(1, [2, 2]), torch.tensor([[[1, 2], [3, 4]]]))
+            self.assertEqual(torch.tensor([[1, 2, 3, 4]]).unflatten(1, torch.Size((2, 2))), torch.tensor([[[1, 2], [3, 4]]]))
+            with self.assertRaisesRegex(RuntimeError, r"unflatten: sizes must be non-empty"):
+                torch.tensor([1]).unflatten(0, [])
+            with self.assertRaisesRegex(RuntimeError, r"unflatten: Provided sizes \[2, 2\] don't multiply up to the size of dim 0 \(1\) in the input tensor"):
+                torch.tensor([1]).unflatten(0, [2, 2])
+            with self.assertRaisesRegex(IndexError, r"dimension specified as 0 but tensor has no dimensions"):
+                torch.tensor(1).unflatten(0, [0])
+            with self.assertRaisesRegex(TypeError, r"unflatten: Expected sizes to be of type Iterable\[Tuple\[str, int\]\] but got list"):
+                torch.tensor([1], names=("A",)).unflatten(0, [1, 1])
+
         @staticmethod
         def _test_gather(self, cast, test_bounds=True):
             m, n, o = random.randint(10, 20), random.randint(10, 20), random.randint(10, 20)
