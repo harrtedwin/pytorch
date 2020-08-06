@@ -42,8 +42,7 @@ def _propagate_qconfig_helper(module, qconfig_dict, white_list=None,
     module_qconfig = qconfig_dict.get(prefix, module_qconfig)
     module_qconfig = getattr(module, 'qconfig', module_qconfig)
 
-    if type(module) in white_list:
-        module.qconfig = module_qconfig
+    module.qconfig = module_qconfig
     for name, child in module.named_children():
         module_prefix = prefix + '.' + name if prefix else name
         _propagate_qconfig_helper(child, qconfig_dict, white_list,
@@ -130,7 +129,8 @@ def add_observer_(module, non_leaf_module_list=None, device=None, prehook=None):
     # Insert observers only for leaf nodes, note that this observer is for
     # the output of the module, for input QuantStub will observe them
     if hasattr(module, 'qconfig') and module.qconfig is not None and \
-       len(module._modules) == 0 and not isinstance(module, torch.nn.Sequential):
+       len(module._modules) == 0 and not isinstance(module, torch.nn.Sequential) \
+       and type(module) in DEFAULT_QCONFIG_PROPAGATE_WHITE_LIST:
         # observer and hook will be gone after we swap the module
         activation = module.qconfig.activation()
         if device is not None:
@@ -172,6 +172,7 @@ def add_quant_dequant(module):
         module._modules[name] = add_quant_dequant(child)
     return module
 
+# TODO: remove white_list
 def prepare(model, inplace=False, white_list=DEFAULT_QCONFIG_PROPAGATE_WHITE_LIST,
             observer_non_leaf_module_list=None, prehook=None):
     r"""Prepares a copy of the model for quantization calibration or quantization-aware training.
